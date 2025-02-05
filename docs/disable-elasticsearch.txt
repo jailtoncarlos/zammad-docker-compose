@@ -1,0 +1,63 @@
+### **Executando o Zammad sem Elasticsearch**
+O Zammad pode ser executado **sem Elasticsearch**, embora **seja fortemente recomendado** utilizá-lo para melhorar o desempenho da pesquisa. Existem casos onde desativá-lo pode ser útil, como:
+- Pequenos times que não precisam de busca avançada.
+- Equipes com orçamento limitado para infraestrutura.
+- Situações temporárias, como falha no Elasticsearch ou atualização do cluster.
+
+---
+
+### **Como o Elasticsearch está configurado no Zammad?**
+No arquivo `docker-compose.yml` padrão, o Elasticsearch está **ativado por padrão**. Além disso, o comando de inicialização `zammad-init` também exige o Elasticsearch, a menos que seja explicitamente desativado.
+
+Se for necessário rodar o Zammad sem Elasticsearch, será preciso:
+1. **Desativar o Elasticsearch** com a variável de ambiente `ELASTICSEARCH_ENABLED=false`.
+2. **Remover todas as referências ao Elasticsearch** no `docker-compose.yml`.
+
+---
+
+### **Passos para desativar o Elasticsearch no Docker Compose**
+
+1. **Editar o `docker-compose.override-local.yml`** (ou diretamente no `docker-compose.yml` caso prefira).
+
+2. **Adicionar a variável `ELASTICSEARCH_ENABLED=false` no serviço `zammad-init`**:
+
+   ```yaml
+   version: '3.8'
+
+   services:
+     zammad-init:
+       environment:
+         - ELASTICSEARCH_ENABLED=false
+   ```
+
+3. **Remover as configurações do Elasticsearch** no `docker-compose.yml`:
+   - O serviço `zammad-elasticsearch`.
+   - O volume correspondente.
+   - As referências ao Elasticsearch no serviço principal (`zammad`).
+
+   Exemplo de remoção:
+
+   ```yaml
+   # Remova ou comente a parte referente ao Elasticsearch
+   services:
+     # zammad-elasticsearch:
+     #   image: docker.elastic.co/elasticsearch/elasticsearch:7.10.2
+     #   environment:
+     #     - discovery.type=single-node
+     #   volumes:
+     #     - elasticsearch-data:/usr/share/elasticsearch/data
+   ```
+
+4. **Aplicar as alterações e reiniciar os containers**:
+   ```bash
+   docker-compose up -d --force-recreate
+   ```
+
+---
+
+### **Impactos de Rodar Sem Elasticsearch**
+- A pesquisa dentro do Zammad ficará **muito mais lenta** e limitada a funções básicas do banco de dados.
+- Algumas funcionalidades avançadas, como **pesquisa full-text e indexação eficiente**, não estarão disponíveis.
+- Pode ser viável apenas para **ambientes pequenos** ou para **soluções temporárias**.
+
+Se possível, o recomendado é manter o Elasticsearch ativo para obter **melhor desempenho e experiência** no Zammad.

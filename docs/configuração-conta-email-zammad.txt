@@ -1,0 +1,150 @@
+Para configurar uma **Conta de E-mail** no **Zammad**, siga os passos abaixo:
+
+---
+
+
+## **Passo a Passo para Configuração**
+1. Acesse o **Zammad** e vá para **Administração** → **Canais** → **Email**.
+2. Clique em **"Nova"**.
+
+### **1. Preencher os Campos Iniciais**
+- **Organização e Departamento**: Selecione o departamento que receberá os e-mails (ex: "Suporte", "Atendimento").
+- **E-mail**: Insira o endereço de e-mail que será usado para enviar e receber mensagens (ex: `suporte@meusite.com`).
+- **Senha**: Insira a senha do e-mail (ou **Senha de Aplicativo**, se for Gmail ou Outlook).
+- **Grupo Destinatário**: Escolha um grupo no Zammad que receberá os tickets criados a partir deste e-mail.
+  - O grupo determina quais agentes poderão ver e responder os tickets.
+  - Exemplo: "Suporte", "Atendimento ao Cliente", "TI".
+
+---
+
+### **2. Configurações Avançadas**
+Clique em **"Configurações Avançadas"** para definir os detalhes do servidor:
+
+1. **Tipo**
+  - **IMAP ou POP3**: Escolha IMAP se quiser que o Zammad receba e-mails automaticamente.
+  - IMAP (recomendado): Mantém os e-mails sincronizados no servidor.
+2. **Servidor de Entrada** (IMAP/POP3):
+  - **Gmail:** `imap.gmail.com` (porta `993`, SSL ativado)
+  - **Outlook:** `outlook.office365.com` (porta `993`, SSL ativado)
+3. **Usuário**
+   - deve ser o mesmo do campo "E-mail"
+4. **Senha**
+    - Se estiver usando um e-mail do **Gmail**, precisa de uma **Senha de Aplicativo**. O Gmail não aceita senhas normais para conexões IMAP externas.
+    - Ver arquivo `smtp-gmail.txt` para mais detalhes.
+    `xhqm ygad jznh ameb`
+5. **SSL/STARTTLS**:
+  - SSL → O método de segurança utilizado para criptografar a conexão.
+6. **Verificação SSL**
+  - Sim → Habilita a verificação do certificado SSL para garantir segurança na conexão.
+7. **Porta**
+  - 993 → Porta padrão para IMAP com SSL.
+8. **Pasta**
+  - **Opcional**: Escolha a pasta onde os e-mails serão armazenados.
+  - Para o Gmail, use:
+    - INBOX (pasta principal)
+    - Zammad-Suporte (se houver uma pasta específica para suporte)
+      - **Como Criar uma Pasta (Marcador) no Gmail**. O Gmail **não usa pastas no sentido tradicional**, mas sim **marcadores (labels)** que funcionam como pastas para organização de e-mails.
+        1. **Acesse o Gmail** ([Clique aqui](https://mail.google.com/)).
+        2. No lado esquerdo, role até o final da lista de marcadores e clique em **"Mais"**.
+        3. Clique em **"Criar novo marcador"**.
+        4. No campo **Nome do marcador**, digite exatamente **"Zammad-Suporte"**.
+        5. Clique em **Criar**.
+
+      - **Nota:
+        - O nome do marcador deve ser **exatamente igual** ao que foi configurado no Zammad.
+        - Não organize o marcador em uma pasta existente, pois o Zammad não conseguirá acessá-lo.
+        - Não use acentos, caracteres especiais ou espaços no nome do marcador.
+
+9. **Servidor de Saída (SMTP):
+  - Clique no botão "Continuar".
+  - **Enviar e-mails via**: SMTP (recomendado).
+  - **Servidor**:
+    - **Gmail:** `smtp.gmail.com` (porta 587, STARTTLS ativado)
+    - **Outlook:** `smtp.office365.com` (porta 587, STARTTLS ativado)
+  - **Senha**: **Senha de Aplicativo** do Google (veja instruções no arquivo `smtp-gmail.txt`).
+  `xhqm ygad jznh ameb`
+  - **Porta**: 587 TLS sim
+
+O Zammad irá testar o envio e recebimento de e-mails
+
+**Nota**
+- Se você selecionou uma pasta específica, lembre-se de criar um filtro para adicionar as mensagens recebidas nessa pasta.
+- A verificação da conta não será concluída até que esta mensagem de teste seja recebida
+
+---
+
+
+9. **Manter Mensagens no Servidor**
+  - Não → Significa que os e-mails serão removidos do Gmail após serem baixados.
+  - Se quiser manter cópias no Gmail, altere para "Sim".
+---
+
+### **3. Configurar Gmail (se aplicável)**
+Se estiver usando um e-mail do **Gmail**, precisa de uma **Senha de Aplicativo**:
+Veja o arquivo stmp-gmail.txt para mais detalhes.
+
+---
+
+### **4. Concluir e Testar**
+1. Clique em **"Conectar"** para testar a conexão.
+2. Se houver erro, verifique:
+   - Se a senha está correta.
+   - Se as portas e servidores IMAP/SMTP estão corretos.
+   - Se há bloqueios no provedor de e-mail (ex: o Gmail pode exigir liberação para aplicativos menos seguros).
+3. Se tudo estiver correto, o Zammad começará a receber e-mails e criar **tickets automaticamente**.
+
+Agora o Zammad está pronto para gerenciar e-mails de suporte! 🚀 Se precisar de mais ajuda, estou à disposição.
+
+
+
+
+---
+
+## **Diferença entre Contas de Email e Notificação de Email**
+No **Zammad**, há duas seções relacionadas a e-mails: **"Contas de Email"** e **"Notificação de Email"**. Cada uma tem um propósito diferente:
+### **1. Contas de Email**
+- Essa seção permite configurar **endereços de e-mail reais** que serão usados para **enviar e receber** mensagens dentro do Zammad.
+- As **contas de e-mail** adicionadas aqui podem ser integradas ao sistema para que:
+  - O **Zammad receba e-mails de clientes** automaticamente (exemplo: um cliente envia um e-mail para `suporte@meusite.com` e um ticket é criado no sistema).
+  - Os agentes possam **responder diretamente a partir do Zammad**, como se estivessem enviando e-mails pelo Gmail, Outlook, ou outro provedor.
+- Tipicamente, são configuradas via **IMAP** (para recebimento) e **SMTP** (para envio).
+- Exemplo: adicionar uma conta `suporte@empresa.com` para que o Zammad gerencie todos os e-mails de suporte.
+
+**Seção "Contas de Email" no Zammad**:  
+✔ Permite adicionar múltiplas contas.  
+✔ Garante que o Zammad possa capturar e-mails e convertê-los em tickets.  
+✔ Necessita credenciais e configurações do provedor de e-mail.
+
+---
+
+### **2. Notificação de Email**
+- Essa seção define **o endereço de e-mail que o Zammad usa para enviar notificações automáticas** para usuários e agentes.
+- As notificações incluem:
+  - Alertas de novos tickets criados.
+  - Atualizações sobre tickets em andamento.
+  - Mensagens de lembrete.
+- Normalmente, esse e-mail é algo como **"noreply@meusite.com"**, pois apenas envia notificações, sem receber respostas.
+- **O erro atual** (`noreply@localhost:8080`) ocorre porque o endereço não é válido para envio externo. Ele precisa ser corrigido para algo como:
+  ```
+  noreply@meusite.com
+  ```
+- Pode ser configurado para usar **Sendmail/Postfix** (local) ou **SMTP** (recomendado para ambientes externos).
+
+**Seção "Notificação de Email" no Zammad**:  
+✔ Define o remetente de notificações automáticas.  
+✔ Normalmente usa um e-mail sem suporte a recebimento.  
+✔ **Não é usado para comunicação direta com clientes** (essa função pertence às "Contas de Email").
+
+---
+
+## **Resumo da Diferença**
+| Recurso | Finalidade |
+|---------|-----------|
+| **Contas de Email** | Permite que o Zammad **receba e envie e-mails** para comunicação com clientes. |
+| **Notificação de Email** | Define o endereço usado para **notificações automáticas** do sistema. |
+
+### **Como Resolver o Problema Atual?**
+No print, o **endereço de notificação está incorreto** (`noreply@localhost:8080`). Para corrigir:
+1. Clique em **Editar**.
+2. Altere para um endereço válido, como `noreply@meusite.com` (ou o e-mail configurado no SMTP).
+3. Salve as alterações e **teste o envio de notificações**.

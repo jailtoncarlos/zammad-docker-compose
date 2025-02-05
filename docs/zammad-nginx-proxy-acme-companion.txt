@@ -1,0 +1,200 @@
+## **Configurando o Zammad com nginx-proxy e acme-companion no `docker-compose.prod.yml`**
+O objetivo é rodar o Zammad atrás de um nginx-proxy com suporte a SSL automático via Let's Encrypt usando o acme-companion. Isso permitirá que o Zammad seja acessado por um domínio seguro (https://zammad.meusite.com.br).
+
+Abaixo está a versão consolidada do `docker-compose.prod.yml`, que inclui:
+- **nginx-proxy** como reverse proxy.
+- **acme-companion** para SSL automático.
+- **Zammad** e seus serviços (PostgreSQL, Redis e Elasticsearch).
+
+### **1. Configuração do  `docker-compose.prod.yml`**
+No arquivo docker-compose.prod.yml, a única modificação necessária nos serviços do Zammad é adicionar as variáveis de ambiente apenas no zammad-nginx, para que ele seja reconhecido pelo proxy reverso.
+
+O nginx-proxy funciona como um roteador de tráfego para serviços que precisam ser expostos via HTTP/HTTPS. No caso do Zammad:
+- O serviço zammad-nginx serve a interface web do Zammad.
+- O nginx-proxy precisa interceptar as requisições HTTP/S para zammad-nginx e encaminhá-las corretamente.
+- Os serviços internos (zammad-postgresql, zammad-elasticsearch, zammad-redis, etc.) não devem ser expostos publicamente.
+
+```yaml
+version: '3.8'
+
+services:
+  # Serviço do nginx-proxy (Reverse Proxy Automático)
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy-network
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  # Serviço do acme-companion (Gerenciamento Automático de Certificados SSL)
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=seuemail@meusite.com.br
+    networks:
+      - proxy-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+
+  # Atualiza o serviço zammad-nginx para rodar atrás do proxy
+  zammad-nginx:
+    environment:
+      - VIRTUAL_HOST=support.meusite.com.br
+      - LETSENCRYPT_HOST=support.meusite.com.br
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
+
+volumes:
+  nginx-certs:
+  nginx-vhost:
+  nginx-html:
+  acme:
+
+```
+
+**Nota**:
+Não é necessário modificar todos os serviços, pois apenas o zammad-nginx precisa estar visível para o proxy reverso. Os demais serviços, como banco de dados (PostgreSQL), Elasticsearch, Redis e Memcached, são usados internamente pelo Zammad e não precisam de acesso direto pelo proxy.
+
+#### Por que não modificar zammad-postgresql, zammad-elasticsearch e outros?
+- O PostgreSQL (zammad-postgresql), Redis (zammad-redis) e Elasticsearch (zammad-elasticsearch) são serviços internos usados pelo Zammad e não precisam de comunicação externa.
+- Deixar esses serviços sem acesso direto pelo proxy aumenta a segurança, evitando exposição desnecessária.
+
+Exemplo de problema ao expor serviços internos:
+Se zammad-postgresql estiver acessível publicamente, alguém pode tentar invadir o banco de dados.
+
+#### Conclusão
+✅ Apenas zammad-nginx precisa ser atualizado para rodar atrás do proxy.
+✅ Os serviços internos continuam isolados, garantindo segurança e desempenho.
+✅ Separação correta das responsabilidades, deixando o proxy cuidar apenas do tráfego HTTP/HTTPS.
+---
+
+### **2. Criar a Rede Docker Compartilhada**
+Antes de subir os serviços, crie a rede compartilhada proxy-network:
+
+```bash
+docker network create proxy-network
+```
+
+### **3. Subir os Containers**
+Agora, basta rodar o comando abaixo para iniciar o Zammad e os serviços necessários:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+📌 **Explicação do comando:**
+- O `docker-compose.yml` contém as configurações padrão do Zammad.
+- O `docker-compose.prod.yml` adiciona a configuração do **reverse proxy** e do **SSL automático**.
+- O uso de `-f` permite rodar ambos os arquivos ao mesmo tempo.
+
+---
+
+### **4. Testar o Acesso**
+- Acesse **https://support.meusite.com.br** no navegador.
+- O **acme-companion** cuidará automaticamente da geração do certificado SSL.
+
+---
+
+## **Benefícios Dessa Abordagem**
+✅ **Organização**: Mantém a configuração do Zammad e do proxy em um único arquivo (`docker-compose.prod.yml`).
+✅ Adiciona apenas o proxy reverso e a configuração SSL no docker-compose.prod.yml.
+✅ **HTTPS Automático**: O **acme-companion** gera e renova os certificados automaticamente.
+✅ **Escalabilidade**: Pode adicionar outros serviços e domínios facilmente ao nginx-proxy.
+✅ **Facilidade de Deploy**: Atualizações do Zammad podem ser feitas sem afetar a configuração do proxy.
+
+
+---
+
+## Explicação das Variáveis VIRTUAL_HOST e LETSENCRYPT_HOST
+
+Os valores das variáveis **`VIRTUAL_HOST`** e **`LETSENCRYPT_HOST`** devem corresponder ao **domínio ou subdomínio** que será usado para acessar o Zammad via navegador.
+
+- **`VIRTUAL_HOST`**:
+  → Define o domínio/subdomínio que será roteado pelo **nginx-proxy**.
+  → O **nginx-proxy** reconhecerá automaticamente esse nome e direcionará o tráfego para o container **`zammad-nginx`**.
+
+- **`LETSENCRYPT_HOST`**:
+  → Define o **domínio/subdomínio** para o qual será gerado um **certificado SSL automático** pelo **acme-companion** (Let's Encrypt).
+  → Se esta variável estiver configurada, um **certificado SSL será gerado automaticamente** para proteger a conexão HTTPS.
+
+---
+
+### **Exemplo de Configuração**
+Se o Zammad estiver sendo configurado para ser acessado via **`support.meusite.com.br`**, então:
+
+```yaml
+  zammad-nginx:
+    environment:
+      - VIRTUAL_HOST=support.meusite.com.br
+      - LETSENCRYPT_HOST=support.meusite.com.br
+    networks:
+      - proxy-network
+```
+
+---
+
+### **Como Escolher o Valor Correto?**
+1. **Se possuir um domínio próprio**, use algo como:
+   ```yaml
+   VIRTUAL_HOST=support.empresa.com
+   LETSENCRYPT_HOST=support.empresa.com
+   ```
+   📌 **O domínio deve estar configurado no DNS para apontar para o servidor onde o Docker está rodando**.
+
+2. **Se estiver testando localmente (sem domínio público)**, pode usar algo como:
+   ```yaml
+   VIRTUAL_HOST=meusite.local
+   LETSENCRYPT_HOST=meusite.local
+   ```
+   ⚠️ **Mas o Let's Encrypt não funciona para domínios locais (ex.: `localhost`, `.local`)**.
+
+3. **Se for um ambiente interno (intranet)**, pode usar um domínio da sua rede:
+   ```yaml
+   VIRTUAL_HOST=support.intranet.local
+   LETSENCRYPT_HOST=support.intranet.local
+   ```
+   🚨 **É necessário um serviço DNS interno para resolver o domínio `*.intranet.local`**.
+
+---
+
+### **Testando o Setup**
+Após configurar corretamente, execute:
+
+```bash
+docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+
+E tente acessar:
+
+```
+https://support.meusite.com.br
+```
+
+Se houver algum erro no SSL, verifique os logs do **acme-companion** para conferir a emissão do certificado:
+
+```bash
+docker logs acme-companion
+```
+
+Se precisar de mais ajustes, posso ajudar! 🚀
+

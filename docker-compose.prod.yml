@@ -1,0 +1,56 @@
+services:
+  # Serviço do nginx-proxy (Reverse Proxy Automático)
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    networks:
+      - proxy-network
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+
+  # Serviço do acme-companion (Gerenciamento Automático de Certificados SSL)
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    restart: unless-stopped
+    depends_on:
+      - nginx-proxy
+    environment:
+      - DEFAULT_EMAIL=paivatulio@gmail.com
+    networks:
+      - proxy-network
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - nginx-certs:/etc/nginx/certs
+      - nginx-vhost:/etc/nginx/vhost.d
+      - nginx-html:/usr/share/nginx/html
+      - acme:/etc/acme.sh
+
+  # Atualiza o serviço zammad-nginx para rodar atrás do proxy
+  zammad-nginx:
+    environment:
+      - VIRTUAL_HOST=support.meusite.com.br
+      - LETSENCRYPT_HOST=support.meusite.com.br
+    networks:
+      - proxy-network
+
+#  zammad-backup:
+#    volumes:
+#      - ./config/backup.conf:/opt/zammad/contrib/backup/config
+
+networks:
+  proxy-network:
+    external: true
+
+volumes:
+  nginx-certs:
+  nginx-vhost:
+  nginx-html:
+  acme:

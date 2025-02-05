@@ -1,0 +1,186 @@
+## Arquivo `zammad.conf` Completo
+```
+#
+# this is the nginx config for zammad
+#
+
+upstream zammad-railsserver {
+    server zammad-railsserver:3000;
+}
+
+upstream zammad-websocket {
+    server zammad-websocket:6042;
+}
+
+server {
+    listen 80;
+
+    # replace 'localhost' with your fqdn if you want to use zammad from remote
+    server_name _;
+
+    root /opt/zammad/public;
+
+    access_log /dev/stdout;
+    error_log  /dev/stdout;
+
+    client_max_body_size 50M;
+
+    location ~ ^/(assets/|robots.txt|humans.txt|favicon.ico) {
+        expires max;
+    }
+
+    location /ws {
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "Upgrade";
+        proxy_set_header CLIENT_IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 86400;
+        proxy_pass http://zammad-websocket;
+    }
+
+    location / {
+        proxy_set_header Host $http_host;
+        proxy_set_header CLIENT_IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_read_timeout 300;
+        proxy_pass http://zammad-railsserver;
+
+        gzip on;
+        gzip_types text/plain text/xml text/css image/svg+xml application/javascript application/x-javascript application/json application/xml;
+        gzip_proxied any;
+    }
+}
+```
+
+---
+
+## **Explicação do Arquivo `zammad.conf`**
+Este arquivo é uma configuração padrão do **Nginx** para hospedar o Zammad, normalmente usada quando **não se está utilizando o `nginx-proxy` do Docker**. Aqui está o que cada parte faz:
+
+### **1. Definição dos "Upstreams"**
+```nginx
+upstream zammad-railsserver {
+    server zammad-railsserver:3000;
+}
+
+upstream zammad-websocket {
+    server zammad-websocket:6042;
+}
+```
+📌 **Explicação:**
+- Define **grupos de servidores** chamados **`upstream`** que servem como destino das requisições.
+- **`zammad-railsserver:3000`** → Redireciona requisições HTTP para a aplicação Ruby on Rails do Zammad.
+- **`zammad-websocket:6042`** → Redireciona requisições WebSocket para o serviço correto dentro do Zammad.
+
+---
+
+### **2. Configuração do Servidor Web**
+```nginx
+server {
+    listen 80;
+    server_name _;
+
+    root /opt/zammad/public;
+
+    access_log /dev/stdout;
+    error_log  /dev/stdout;
+
+    client_max_body_size 50M;
+```
+📌 **Explicação:**
+- **`listen 80;`** → O Nginx escuta requisições na porta **80** (HTTP).
+- **`server_name _;`** → Aceita requisições para qualquer domínio (pode ser alterado para um domínio específico, como `zammad.meusite.com.br`).
+- **`root /opt/zammad/public;`** → Define o diretório público do Zammad.
+- **`client_max_body_size 50M;`** → Permite uploads de até **50MB** (importante para anexos nos tickets do Zammad).
+
+---
+
+### **3. Configuração de Arquivos Estáticos**
+```nginx
+location ~ ^/(assets/|robots.txt|humans.txt|favicon.ico) {
+    expires max;
+}
+```
+📌 **Explicação:**
+- **Arquivos estáticos (CSS, JS, imagens, favicon, etc.) são armazenados em cache** para melhorar o desempenho.
+
+---
+
+### **4. Configuração do WebSocket**
+```nginx
+location /ws {
+    proxy_http_version 1.1;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection "Upgrade";
+    proxy_set_header CLIENT_IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_read_timeout 86400;
+    proxy_pass http://zammad-websocket;
+}
+```
+📌 **Explicação:**
+- Define que todas as requisições para **`/ws`** são enviadas para o serviço **`zammad-websocket`** (porta 6042).
+- **Habilita WebSockets**, necessários para atualizações em tempo real dentro do Zammad.
+- **`proxy_set_header Upgrade $http_upgrade;`** → Permite a comunicação WebSocket.
+
+---
+
+### **5. Configuração das Requisições HTTP**
+```nginx
+location / {
+    proxy_set_header Host $http_host;
+    proxy_set_header CLIENT_IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto https;
+    proxy_read_timeout 300;
+    proxy_pass http://zammad-railsserver;
+
+    gzip on;
+    gzip_types text/plain text/xml text/css image/svg+xml application/javascript application/x-javascript application/json application/xml;
+    gzip_proxied any;
+}
+```
+📌 **Explicação:**
+- Todas as requisições **HTTP são encaminhadas para `zammad-railsserver` (porta 3000)**, onde a aplicação Rails do Zammad processa as requisições.
+- **`gzip on;`** → Habilita compressão GZIP para melhorar a velocidade de carregamento.
+
+---
+
+## **Quando Usar Esse Arquivo?**
+1. **Se o Zammad estiver rodando diretamente no servidor sem Docker**, esse arquivo pode ser colocado no diretório do Nginx, por exemplo:
+   ```bash
+   /etc/nginx/sites-available/zammad.conf
+   ```
+   E depois ativá-lo com:
+   ```bash
+   ln -s /etc/nginx/sites-available/zammad.conf /etc/nginx/sites-enabled/
+   systemctl restart nginx
+   ```
+
+2. **Se o Zammad estiver rodando em um container Docker**, mas sem `nginx-proxy`, esse arquivo pode ser montado como um volume no container do Nginx, por exemplo:
+   ```yaml
+   services:
+     zammad-nginx:
+       image: nginx
+       volumes:
+         - ./zammad.conf:/etc/nginx/conf.d/zammad.conf
+   ```
+
+---
+
+## **Esse Arquivo é Necessário se Estiver Usando o `nginx-proxy` e `acme-companion`?**
+🔴 **Não!** Se estiver usando o **`nginx-proxy` e `acme-companion`**, **esse arquivo é desnecessário** porque:
+- O **nginx-proxy configura automaticamente os hosts** com base nas variáveis `VIRTUAL_HOST`.
+- O **acme-companion gera os certificados SSL automaticamente**.
+- Todo o tráfego já será roteado para o **`zammad-nginx`**, que já contém sua própria configuração interna.
+
+---
+
+## **Conclusão**
+✅ Esse arquivo **é útil para quem quer rodar o Zammad com um Nginx configurado manualmente**.
+✅ Se estiver usando **Docker com `nginx-proxy` e `acme-companion`**, **esse arquivo não é necessário**.
+✅ Se for usá-lo, o arquivo deve ser carregado no Nginx do servidor ou no container do Zammad.

@@ -1,0 +1,44 @@
+### **Resumo do Funcionamento**
+1. O **nginx-proxy** fica rodando e **"ouvindo" eventos de containers** que sobem ou descem.
+2. Quando um **novo container** sobe e tem a variável de ambiente **`VIRTUAL_HOST`** configurada, o nginx-proxy detecta automaticamente e ajusta o proxy para esse serviço.
+3. Se também houver a variável **`LETSENCRYPT_HOST`**, o **acme-companion** automaticamente gera e configura um certificado SSL válido usando **Let's Encrypt**.
+4. O nginx-proxy e os containers que serão gerenciados por ele **devem estar na mesma rede Docker** para que a detecção funcione.
+
+---
+
+### **Exemplo do Comando**
+Seu amigo mencionou um comando semelhante a este:
+
+```bash
+docker run --detach \
+  --name your-proxied-app \
+  --env "VIRTUAL_HOST=subdomain.yourdomain.tld" \
+  --env "LETSENCRYPT_HOST=subdomain.yourdomain.tld" \
+  your-docker-image
+```
+
+#### **Explicação das Variáveis de Ambiente:**
+- **`VIRTUAL_HOST=subdomain.yourdomain.tld`**
+  → Define o domínio/subdomínio que será usado para acessar o container.
+  → O **nginx-proxy** vai configurar automaticamente esse domínio.
+
+- **`LETSENCRYPT_HOST=subdomain.yourdomain.tld`**
+  → Indica que deve ser gerado um **certificado SSL** para esse domínio via Let's Encrypt.
+
+Se o **nginx-proxy** e o **acme-companion** já estiverem rodando na rede correta, esse novo container **será automaticamente roteado e terá HTTPS ativado**.
+
+---
+
+### **Por Que Isso é Útil?**
+- **Automação:** Não é necessário configurar o Nginx manualmente para cada container.
+- **Segurança:** O Let's Encrypt fornece **SSL gratuito**, garantindo conexões seguras.
+- **Escalabilidade:** Novos serviços podem ser adicionados **dinamicamente** sem reconfiguração manual.
+
+---
+
+Se estiver configurando um ambiente com nginx-proxy, certifique-se de que:
+- O container do **nginx-proxy** está rodando e na **mesma rede Docker**.
+- O container do **acme-companion** também está rodando para gerenciar os certificados.
+- Os containers que precisam de proxy estão sendo iniciados com as **variáveis de ambiente corretas** (`VIRTUAL_HOST` e `LETSENCRYPT_HOST`).
+
+Caso tenha dúvidas, posso ajudar a configurar um ambiente Docker com nginx-proxy e acme-companion. 🚀

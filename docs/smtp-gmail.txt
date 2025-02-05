@@ -1,0 +1,242 @@
+Para configurar o **Gmail** como servidor SMTP no **Zammad**, siga estas instruções:
+
+---
+
+### **Configuração do SMTP do Gmail**
+Preencha os campos da tela conforme abaixo:
+
+- **Servidor (SMTP Host):** `smtp.gmail.com`
+- **Usuário:** Seu e-mail do Gmail (`nomeusuario@gmail.com`)
+- **Senha:** **App Password do Google** (veja instruções abaixo)
+- **Porta:**  
+  - `465` se usar **SSL**
+  - `587` se usar **TLS**
+- **Verificação SSL:**  
+  - `Sim` para `465` (SSL)
+  - `STARTTLS` para `587`
+
+**Nota:**
+- **Sempre use uma "Senha de Aplicativo" do Google** para evitar bloqueios de login.
+
+---
+
+### **📌 Qual Porta Usar?**
+- **Use porta 587 com STARTTLS**.
+- **Evite porta 465** (ainda funciona, mas está obsoleta e menos flexível).
+
+| Porta | Protocolo | Segurança | Recomendado? |
+|-------|----------|-----------|--------------|
+| **465** | SSL | Conexão segura, mas obsoleta |  Não recomendado |
+| **587** | STARTTLS | Padrão moderno para envio seguro | **Sim, recomendado** |
+
+**Porta 587 com STARTTLS** é o **método recomendado pelo Google**, pois permite criptografia mais flexível e é o padrão para envio de e-mails via SMTP.
+
+- **SSL** é mais seguro, mas **alguns provedores bloqueiam a porta 465**.
+- **TLS** é mais comum e **funciona na maioria dos casos**.
+
+---
+
+### **Importante: Gmail exige senha de aplicativo**
+Se a autenticação com sua senha normal não funcionar, você precisa gerar uma **Senha de Aplicativo** no Google. O Google bloqueia autenticação direta com e-mail/senha por motivos de segurança.
+
+#### 1. Acesse [Minha Conta Google](https://myaccount.google.com/security).
+
+#### 2. Role até **"Como você faz login no Google"**
+Se a opção **"Senhas de app"** não está aparecendo na seção **"Como você faz login no Google"**. Isso acontece porque o Google **só exibe essa opção se a verificação em duas etapas estiver ativada e configurada corretamente**.
+
+1. **Ative a verificação em duas etapas** (se já estiver ativa, pule para o próximo passo):
+   - Vá para [Minha Conta Google – Segurança](https://myaccount.google.com/security).
+   - Em **"Verificação em duas etapas"**, clique e siga as instruções para ativar.
+
+**Nota:**
+- Se você configurou a verificação em duas etapas, mas não encontra a opção para adicionar uma senha de app, pode ser porque:
+   - **Você está usando apenas chaves de segurança** ou **Google Authenticator**.
+     - Acesse [Verificação em duas etapas](https://myaccount.google.com/signinoptions/two-step-verification?flow=sk&opendialog=addsk).
+     - Na lista de "Segundas etapas", verifique se existe a opção "Adicionar uma chave de segurança", se sim, clique nela.
+       - Clique no botão "Criar uma chave de acesso" e siga as instruções.
+
+- O Google **não exibe a opção "Senhas de app"** se você estiver usando apenas **chaves de segurança** ou **Google Authenticator**. Se desejar, você pode ativar a opção "SMS" ou "Solicitação do Google"** como método principal na verificação em duas etapas.
+
+2. **Gere a Senha de Aplicativo"**:
+   - Acesse [Verificação em duas etapas](https://myaccount.google.com/signinoptions/two-step-verification?flow=sk&opendialog=addsk).
+   - Clique em [Senhas de app](https://myaccount.google.com/apppasswords).
+   - Informe o nome do app: **"Zammad"**.
+   - Clique em **Criar** e copie a senha gerada para usar no Zammad. **fxtf kcnu csxm ycnz**
+   - Copie a senha gerada e use no **campo de senha do SMTP no Zammad**
+
+---
+
+### **📌 O que fazer se "Senhas de app" continuar não aparecendo?**
+- **Confirme que a verificação em duas etapas está ativa e configurada corretamente**.
+- Opcionalmente, use "SMS" ou "Solicitação do Google" como método principal**, em vez de **chaves de segurança**.
+- **Tente acessar diretamente o link:** [https://myaccount.google.com/apppasswords](https://myaccount.google.com/apppasswords).
+
+---
+
+### **Resumo das Configurações para Gmail**
+| Configuração  | Valor |
+|--------------|-------|
+| **Servidor SMTP** | `smtp.gmail.com` |
+| **Usuário** | Seu e-mail do Gmail |
+| **Senha** | Senha de Aplicativo do Google |
+| **Porta** | ``587` (TLS) |
+| **Verificação SSL** | `STARTTLS`|
+
+Se o Zammad não permitir selecionar STARTTLS, tente marcar a opção **"Sim"** na verificação SSL.
+
+---
+
+### **Testando o Envio**
+Após configurar, clique em **"Continuar"** e **envie um e-mail de teste** no Zammad. Se houver erro, revise:
+- Se o **servidor SMTP está correto**.
+- Se a **senha usada é a Senha de Aplicativo**, e não sua senha normal.
+- Se a **porta está correta** (465 SSL ou 587 TLS).
+
+---
+## Possíveis erros:
+
+### **Erro: `Mail::AddressList can not parse |Zammad Helpdesk <noreply@localhost:8080>|`**
+
+```
+Mail::AddressList can not parse |Zammad Helpdesk <noreply@localhost:8080>|
+Only able to parse up to "Zammad Helpdesk <noreply@localhost>"
+```
+
+Indica que o **endereço de e-mail configurado como remetente no Zammad está incorreto**.
+
+---
+
+### **Causa do Problema**
+O Zammad está tentando enviar e-mails usando um remetente inválido:
+**`noreply@localhost:8080`**
+O Gmail (ou qualquer outro provedor SMTP) **não aceita domínios inválidos** (`localhost` não é um domínio válido para envio de e-mails).
+
+---
+
+### **Como Resolver pelo aplicativo do Zammad**
+É necessário alterar o **e-mail do remetente** para um endereço válido. Siga os passos:
+
+#### **1. Ajustar o remetente no Zammad**
+1. Vá para **Administração** → **Configurações de Notificação de E-mail**.
+2. Verifique o campo **"Endereço de resposta padrão"**.
+3. **Altere para um e-mail válido**, por exemplo:
+   ```
+   Zammad Helpdesk <noreply@meusite.com>
+   ```
+   ou
+   ```
+   Zammad Support <suporte@meudominio.com.br>
+   ```
+4. Salve as configurações e tente novamente.
+
+---
+
+#### **2️. Ajustar nas configurações do e-mail**
+1. Vá para **Administração** → **Canais** → **E-mail**.
+2. Clique no endereço configurado e **verifique se o campo "De" (From) está correto**.
+3. **Troque `noreply@localhost:8080` por um e-mail válido** associado à sua conta do Gmail.
+1. Vá para **Administração** → **Canais** → **E-mail**.
+2. Em "Notificação de email", clique no botão editar.
+    - Selecione "SMTP" par definir suas próprias configurações
+    - Informe:
+        - **Servidor (SMTP Host):** `smtp.gmail.com`
+        - **Usuário:** Seu e-mail do Gmail
+        - **Senha:** Senha de Aplicativo do Google `fxtf kcnu csxm ycnz`
+        - **Porta:** `587` (STARTTLS)
+        - **Verificação SSL:** `STARTTLS` (ou `Sim`)
+
+---
+
+#### **3. Testar o Envio**
+Após ajustar o e-mail do remetente, clique em **"Continuar"** e teste o envio.
+
+---
+
+#### **Conclusão**
+- O erro acontece porque o remetente está configurado como `noreply@localhost:8080`, o que não é aceito por servidores SMTP.
+- Alterar o remetente para um e-mail válido (`noreply@meusite.com`) resolve o problema.
+- Depois de corrigir, tente enviar o e-mail novamente e verifique se há novos erros nos logs do Zammad.
+
+
+### Configurar o E-mail do Remetente no Container do Zammad
+Definição do **e-mail do remetente (From)** nas configurações do contêiner do **Zammad** usando variáveis de ambiente no `docker-compose.yml`.
+
+Isso garante que o endereço correto seja usado, evitando o erro `noreply@localhost:8080`.
+
+---
+
+#### **Como Configurar o E-mail do Remetente no Container do Zammad**
+No arquivo `.env`, adicione as seguintes variáveis
+
+```
+# Configurações do remetente para o ambiente de desenvolvimento
+EMAIL_FROM=jailtoncarlos@gmail.com
+EMAIL_REPLY_TO=jailtoncarlos@gmail.com
+EMAIL_DELIVERY_METHOD=smtp
+
+# Configurações SMTP do Gmail
+SMTP_ADDRESS=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=jailtoncarlos@gmail.com
+SMTP_PASSWORD=senha_de_aplicativo
+SMTP_DOMAIN=gmail.com
+SMTP_AUTHENTICATION=login
+SMTP_ENABLE_STARTTLS_AUTO=true
+```
+
+Nos arquivos docker-compose-dev.yml e docker-compose-prod.yml configure o serviço `zammad-railsserver`:
+
+```yaml
+  zammad-railsserver:
+    environment:
+      - EMAIL_FROM=${EMAIL_FROM}
+      - EMAIL_REPLY_TO=${EMAIL_REPLY_TO}
+      - EMAIL_DELIVERY_METHOD=${EMAIL_DELIVERY_METHOD}
+      - SMTP_ADDRESS=${SMTP_ADDRESS}
+      - SMTP_PORT=${SMTP_PORT}
+      - SMTP_USER=${SMTP_USER}
+      - SMTP_PASSWORD=${SMTP_PASSWORD}
+      - SMTP_DOMAIN=${SMTP_DOMAIN}
+      - SMTP_AUTHENTICATION=${SMTP_AUTHENTICATION}
+      - SMTP_ENABLE_STARTTLS_AUTO=${SMTP_ENABLE_STARTTLS_AUTO}
+    env_file:
+      - .env
+```
+
+**Explicação das variáveis**:
+- **EMAIL_FROM** → Define o e-mail do remetente (corrige o problema do `noreply@localhost`).
+- **EMAIL_REPLY_TO** → Define o e-mail para respostas dos clientes.
+- **EMAIL_DELIVERY_METHOD** → Define o envio via **SMTP**.
+- **SMTP_ADDRESS** → Servidor SMTP do Gmail (`smtp.gmail.com`).
+- **SMTP_PORT** → `587` (STARTTLS) ou `465` (SSL).
+- **SMTP_USER** → Seu e-mail do Gmail.
+- **SMTP_PASSWORD** → **Use a senha de aplicativo do Google, nunca sua senha normal**.
+- **SMTP_DOMAIN** → O domínio que será usado no remetente (`meusite.com`).
+- **SMTP_AUTHENTICATION** → Define o método de autenticação como `login`.
+- **SMTP_ENABLE_STARTTLS_AUTO** → Ativa criptografia STARTTLS automaticamente.
+
+---
+
+#### **Aplicando as Configurações**
+1. **Reinicie os containers do Zammad** para aplicar as configurações:
+   ```bash
+   docker-compose down
+   docker-compose up -d
+   ```
+
+2. **Verifique se as configurações foram aplicadas**:
+   ```bash
+   docker exec -it zammad-railsserver env | grep EMAIL
+   ```
+
+3. **Teste o envio de e-mails no Zammad**:
+   - Acesse **Administração** → **Configurações de Notificação de E-mail**.
+   - Verifique se o remetente está correto.
+   - Envie um e-mail de teste.
+
+---
+
+#### **✅ Conclusão**
+- Agora, o Zammad usará **`suporte@meusite.com`** como remetente em vez de `noreply@localhost`.
+- Todas as configurações do SMTP foram movidas para o **docker-compose.yml**, evitando configurações manuais na interface web.
+- O Gmail exigirá uma **Senha de Aplicativo**, então **não use sua senha normal**.

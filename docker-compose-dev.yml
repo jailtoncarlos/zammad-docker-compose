@@ -1,0 +1,22 @@
+services:
+  zammad-nginx:
+    ports:
+      - "8080:8080" # Exponha a porta 8080 para acessar localmente
+    environment:
+      NGINX_PORT: 8080
+      VIRTUAL_HOST: localhost # Sem domínio externo
+      LETSENCRYPT_HOST: ""    # Desative SSL no ambiente local
+      LETSENCRYPT_EMAIL: ""
+
+  zammad-elasticsearch:
+    environment:
+      discovery.type: single-node # Configuração de Elasticsearch para ambiente local
+
+  zammad-backup:
+    volumes:
+      - ./config/backup.conf:/opt/zammad/contrib/backup/config
+      - ./config/database.yml:/opt/zammad/config/database.yml
+
+networks:
+  zammad-network:
+    driver: bridge

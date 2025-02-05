@@ -1,0 +1,126 @@
+### **Usando um Reverse Proxy com Zammad**
+Um **reverse proxy** é necessário quando há **mais de uma aplicação web** rodando no mesmo servidor. Ele gerencia as conexões HTTP(S), encaminhando as solicitações para a aplicação correta com base no domínio ou nas portas.
+
+No caso do **Zammad**, um reverse proxy pode ser usado para:
+- Roteamento de tráfego entre múltiplos serviços no mesmo servidor.
+- Configuração de **HTTPS** usando **Let's Encrypt** ou outro certificado SSL.
+- Melhorar a **segurança** e o **desempenho** ao gerenciar requisições.
+
+O repositório do **Zammad Docker Compose** fornece um exemplo de configuração de reverse proxy no arquivo:
+```
+./.examples/proxy/docker-compose.proxy-example.yml
+```
+Esse arquivo pode ser usado como base para criar uma configuração personalizada.
+
+---
+
+## **Passos para Configurar um Reverse Proxy com Docker Compose**
+
+### **1. Copiar o arquivo de exemplo para a configuração personalizada**
+```bash
+cp ./.examples/proxy/docker-compose.proxy-example.yml ./docker-compose.prod.yml
+```
+Isso cria um novo arquivo chamado `docker-compose.prod.yml`, que pode ser ajustado conforme necessário.
+
+---
+
+### **2. Modificar as variáveis de ambiente**
+- **`VIRTUAL_HOST`**: Define o domínio que será usado para acessar o Zammad.
+- **Nome da rede externa**: Se já existir uma rede para comunicação entre os serviços, deve ser ajustada.
+
+Exemplo de **edição do `docker-compose.prod.yml`**:
+
+```yaml
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: nginx
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - VIRTUAL_HOST=support.meusite.com.br
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true  # Garante que use uma rede compartilhada entre os containers
+```
+
+---
+
+### **3. Executar o Docker Compose com múltiplos arquivos**
+Para rodar o Zammad com a configuração do proxy, use:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
+```
+Isso garante que as configurações padrão (`docker-compose.yml`) e as do proxy (`docker-compose.prod.yml`) sejam aplicadas em conjunto.
+
+---
+
+## **Benefícios dessa Abordagem**
+1. **Separação de Configurações**: O `docker-compose.yml` mantém a configuração básica, enquanto o `docker-compose.prod.yml` gerencia o proxy, facilitando manutenções e updates.
+2. **Facilidade para Deploy**: A configuração pode ser **armazenada no Git** e atualizada via `merge` com mudanças do repositório oficial.
+3. **Melhoria de Segurança**: Permite a adição de **HTTPS** e controle de tráfego por meio do proxy reverso.
+
+---
+
+## **Exemplo de Reverse Proxy Completo com Nginx e SSL**
+Caso seja necessário configurar **HTTPS**, um exemplo de configuração do proxy usando **Nginx** com certificado **Let's Encrypt** pode ser:
+
+```yaml
+version: '3.8'
+
+services:
+  nginx-proxy:
+    image: jwilder/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+    networks:
+      - proxy-network
+
+  letsencrypt:
+    image: jrcs/letsencrypt-nginx-proxy-companion
+    container_name: letsencrypt
+    environment:
+      - NGINX_PROXY_CONTAINER=nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /etc/acme.sh:/etc/acme.sh
+    networks:
+      - proxy-network
+
+  zammad:
+    environment:
+      - VIRTUAL_HOST=support.meusite.com.br
+      - LETSENCRYPT_HOST=support.meusite.com.br
+      - LETSENCRYPT_EMAIL=seuemail@meusite.com.br
+    networks:
+      - proxy-network
+
+networks:
+  proxy-network:
+    external: true
+```
+Essa configuração:
+- Roteia as conexões corretamente para o **Zammad**.
+- Habilita **HTTPS automático** via **Let's Encrypt**.
+- Funciona em conjunto com o `docker-compose.yml` principal.
+
+---
+
+### **Conclusão**
+A utilização de um **reverse proxy** com Zammad permite:
+✅ Roteamento eficiente de requisições.
+✅ Suporte a **HTTPS** e **segurança melhorada**.
+✅ Integração com múltiplas aplicações no mesmo servidor.
+✅ Facilidade para deploy e manutenção.
+
+Esse método é ideal para ambientes de **produção**, garantindo maior estabilidade e segurança.

@@ -1,0 +1,30 @@
+A escolha entre **"MTA local"** e **"SMTP"** depende da infraestrutura do seu servidor e da necessidade de personalização do envio de e-mails no **Zammad**.
+
+### **Explicação das Opções**
+1. **MTA Local (Sendmail/Postfix/Exim)** → Usa o servidor de e-mails instalado localmente na máquina onde o Zammad está rodando.
+   - **Vantagens**:
+     - Mais simples se o servidor já tiver um **MTA (Mail Transfer Agent)** configurado corretamente.
+     - Ideal para ambientes onde já existe um **Postfix**, **Sendmail** ou **Exim** operacional.
+   - **Desvantagens**:
+     - Depende de um servidor de e-mail local configurado corretamente.
+     - Pode enfrentar problemas de **entrega de e-mails bloqueados** por provedores (Gmail, Outlook, etc.).
+
+2. **SMTP** → Permite definir as próprias configurações de servidor SMTP para envio de e-mails.
+   - **Vantagens**:
+     - Funciona em qualquer ambiente sem precisar configurar um MTA local.
+     - Permite usar serviços confiáveis como **Gmail, Outlook, Amazon SES, SendGrid**.
+     - Reduz riscos de **bloqueio de e-mails** por filtros de spam.
+   - **Desvantagens**:
+     - Requer que você tenha um servidor SMTP externo.
+     - Pode exigir autenticação e configuração adicional.
+
+---
+
+### **Qual Escolher?**
+- **Se o servidor já tiver um MTA configurado corretamente**, escolha **"MTA Local"**.
+- **Se precisar de um envio mais confiável (Gmail, Outlook, etc.)**, escolha **"SMTP"** e configure um servidor SMTP externo.
+
+---
+
+### **Recomendação**
+Se **não tiver certeza** se o servidor possui um MTA local configurado corretamente, **recomendo usar a opção SMTP** e configurar um provedor de e-mails externo. Isso **evita problemas de entrega** e garante que os e-mails não sejam bloqueados por provedores como Google ou Microsoft.

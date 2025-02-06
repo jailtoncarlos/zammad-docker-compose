@@ -1,0 +1,97 @@
+O **Zammad** utiliza diferentes **estados de tickets** para gerenciar o fluxo de atendimento e a comunicação entre clientes e agentes. Abaixo está a explicação detalhada de cada um dos estados disponíveis na lista que forneceu:
+
+---
+
+## **1️. Novo**
+**Significado:**  
+- O ticket foi criado, mas ainda **não foi atendido** por nenhum agente.  
+- Esse é o estado inicial de qualquer novo ticket.
+
+**Quando Usar:**  
+- Sempre que um cliente ou sistema automatizado criar um novo ticket.  
+- Aguarda a atribuição a um agente ou uma ação inicial.
+
+---
+
+## **2️. Em Atendimento**
+**Significado:**  
+- O ticket está sendo **ativo e trabalhado** por um agente.  
+- Indica que **alguém está lidando com a solicitação**.
+
+**Quando Usar:**  
+- Quando um agente começa a trabalhar no ticket.  
+- Quando há uma troca ativa de mensagens entre agente e cliente.
+
+**Dica:** Esse estado é útil para filtrar tickets ativos no painel de controle.
+
+---
+
+## **3️. Lembrete Pendente**
+**Significado:**  
+- O ticket foi marcado para **revisão futura** pelo próprio agente.  
+- Útil para lembretes internos.
+
+**Quando Usar:**  
+- Quando um agente precisa verificar o ticket mais tarde.  
+- Quando o agente aguarda informações de terceiros **(não do cliente)** e não quer esquecer de revisar o ticket no futuro.
+
+**Dica:** O Zammad permite definir uma **data de lembrete**, onde o ticket aparecerá novamente na fila de pendências do agente.
+
+---
+
+## **4️. Concluído**
+**Significado:**  
+- O ticket foi **totalmente resolvido** e não requer mais ações.  
+- Nenhuma ação adicional pode ser tomada pelo agente a menos que o ticket seja reaberto.
+
+**Quando Usar:**  
+- Quando o problema do cliente foi resolvido.  
+- Quando o cliente confirma que a questão foi solucionada.  
+- Após um ticket ser fechado automaticamente devido à falta de resposta.
+
+**Dica:** O cliente ainda pode reabrir o ticket caso responda ao e-mail, dependendo da configuração do sistema.
+
+---
+
+## **5️. Agrupado**
+**Significado:**  
+- O ticket foi **mesclado** com outro ticket relacionado.  
+- Ele não pode ser mais acessado separadamente.
+
+**Quando Usar:**  
+- Quando um cliente cria tickets duplicados sobre o mesmo assunto.  
+- Quando diferentes tickets se referem ao mesmo problema e podem ser tratados como um só.
+
+**Dica:** Os tickets agrupados são arquivados, mas todas as respostas e anexos ainda podem ser encontrados no ticket principal.
+
+---
+
+## **6️. Fechamento Pendente**
+**Significado:**  
+- O ticket será **automaticamente fechado** em breve se não houver resposta do cliente.  
+- Indica que o atendimento foi finalizado, mas ainda há um curto prazo para o cliente responder antes do fechamento definitivo.
+
+**Quando Usar:**  
+- Após enviar uma última resposta ao cliente, mas permitindo que ele reabra o ticket se precisar.  
+- Quando o agente acredita que o ticket pode ser fechado, mas quer dar um tempo para o cliente confirmar.
+
+**Dica:** Se o cliente responder, o estado **"Em atendimento"** será restaurado.
+
+---
+
+### **Comparação Geral**
+| Estado                | Quem age?      | Pode ser reaberto? | Propósito |
+|-----------------------|---------------|--------------------|------------|
+| **Novo**              | Cliente       | Sim               | Aguardar atribuição |
+| **Em Atendimento**    | Agente        | Sim               | Indica que está sendo trabalhado |
+| **Lembrete Pendente** | Agente        | Sim               | Ticket pausado, aguardando revisão futura |
+| **Fechamento Pendente** | Cliente       | Sim (se responder) | Fechamento programado caso o cliente não responda |
+| **Concluído**         | Cliente/Agente | Não (exceto manualmente) | Resolvido, sem mais ações |
+| **Agrupado**          | Agente        | Não               | Mesclado com outro ticket |
+
+---
+
+### **Conclusão**
+Os estados do **Zammad** ajudam a manter a organização dos tickets e melhoram o fluxo de trabalho. A escolha correta de estado pode melhorar a eficiência da equipe de suporte e garantir um atendimento mais claro e estruturado.
+
+Se precisar de mais ajustes ou automações para esses estados, podemos configurar **gatilhos** e **automações** no Zammad! 🚀

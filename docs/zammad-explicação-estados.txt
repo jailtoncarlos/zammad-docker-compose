@@ -1,5 +1,6 @@
 O **Zammad** utiliza diferentes **estados de tickets** para gerenciar o fluxo de atendimento e a comunicação entre clientes e agentes. Abaixo está a explicação detalhada de cada um dos estados disponíveis na lista que forneceu:
 
+
 ---
 
 ## **1️. Novo**

@@ -12,10 +12,12 @@ default: &default
   adapter: postgresql
   username: zammad
   password: zammad
+  database: zammad_production
 
   # If the database server is not on localhost, you can set hostname and port:
   host: zammad-postgresql
   port: 5432
+
 
   #### mysql config #####
 

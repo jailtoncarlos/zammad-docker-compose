@@ -14,6 +14,8 @@ services:
 
   zammad-backup:
     volumes:
+      - zammad-backup:/var/tmp/zammad
+      - zammad-storage:/opt/zammad/storage
       - ./config/backup.conf:/opt/zammad/contrib/backup/config
       - ./config/database.yml:/opt/zammad/config/database.yml
 

@@ -1,5 +1,75 @@
 #!/bin/bash
 
+function verificar_criar_rede() {
+    environment=$1
+
+    if [ "$environment" == "dev" ]; then
+        rede="zammad-network"
+    elif [ "$environment" == "prod" ]; then
+        rede="proxy-network"
+    fi
+
+    # Verifica se a rede foi informada
+    if [ -z "$rede" ]; then
+        echo "ERRO: Nenhuma rede foi informada para a função verificar_criar_rede()"
+        return 1
+    fi
+
+    # Verifica se a rede existe, se não, cria
+    if ! docker network ls | grep -q "$rede"; then
+        echo "--- Criando rede $rede..."
+        echo ">>> docker network create $rede"
+        docker network create "$rede"
+
+        if [ $? -eq 0 ]; then
+            echo "Rede $rede criada com sucesso!"
+        else
+            echo "ERRO: Falha ao criar a rede $rede"
+            return 1
+        fi
+    else
+        echo "Rede $rede já existe!"
+    fi
+}
+
+function aguarda_servico_ficar_pronto() {
+    container_name="$1"
+
+    # Aguarda o serviço zammad-nginx ficar pronto
+    echo "--- Aguardando o serviço '$container_name' iniciar..."
+    echo ">>> docker ps | grep -q \"$container_name\""
+    while ! docker compose ps | grep -q "$container_name"; do
+        echo "Verificando novamente em 5 segundos..."
+        sleep 5
+    done
+    echo "Container $container_name está rodando!"
+}
+
+function inicializar_servicos() {
+    environment=$1
+    command=$2
+    args="${@:3}" # Todos os argumentos após o segundo
+
+    verificar_criar_rede "$environment"
+
+    if [ "$command" == "up" ]; then
+        echo "--- Iniciando os serviços..."
+        $COMPOSE_CMD up -d $args
+    elif [ "$command" == "restart" ]; then
+        echo "--- Reiniciando os serviços..."
+        $COMPOSE_CMD down && $COMPOSE_CMD up -d $args
+    else
+        echo "ERRO: Opção inválida! Use 'up' ou 'restart'."
+        exit 1
+    fi
+
+    aguarda_servico_ficar_pronto "zammad-nginx"
+}
+
+# Exemplo de uso da função:
+# verificar_criar_rede "zammad-network"
+
+
 # Verifica se o primeiro argumento foi informado (dev ou prod)
 if [ -z "$1" ]; then
     echo "ERRO: Você deve informar o ambiente (dev ou prod)."
@@ -14,18 +84,15 @@ shift  # Remove o primeiro argumento da lista
 # Carregar variáveis do arquivo .env
 export $(grep -v '^#' .env | xargs)
 
-REDE=""
 case "$ENVIRONMENT" in
     dev)
         COMPOSE_CMD="docker-compose -f docker-compose.yml -f docker-compose-dev.yml"
         echo "Usando ambiente de **desenvolvimento** (docker-compose-dev.yml)"
-        REDE="zammad-network"
         ACESSO="http://localhost:8080"
         ;;
     prod)
         COMPOSE_CMD="docker-compose -f docker-compose.yml -f docker-compose-prod.yml"
         echo "Usando ambiente de **produção** (docker-compose-prod.yml)"
-        REDE="proxy-network"
         ACESSO="https://seu-dominio.com"
         ;;
     *)
@@ -58,17 +125,14 @@ fi
 # Comandos disponíveis
 case "$1" in
     up)
-        echo "--- Iniciando os serviços..."
-
-        $COMPOSE_CMD up -d
+        inicializar_servicos "$ENVIRONMENT" "up" "${@:2}"
         ;;
     down)
         echo "--- Parando e removendo os serviços..."
         $COMPOSE_CMD down
         ;;
     restart)
-        echo "--- Reiniciando os serviços..."
-        $COMPOSE_CMD down && $COMPOSE_CMD up -d
+        inicializar_servicos "$ENVIRONMENT" "restart" "${@:2}"
         ;;
     logs)
         echo "--- Exibindo logs dos serviços..."
@@ -88,6 +152,8 @@ case "$1" in
         ;;
     backup)
         CONTAINER_NAME="zammad-backup"
+
+        aguarda_servico_ficar_pronto "$CONTAINER_NAME"
 
         echo "--- Criando backup do Zammad..."
         echo ">>> $COMPOSE_CMD exec $CONTAINER_NAME /opt/zammad/contrib/backup/zammad_backup.sh"
@@ -110,9 +176,17 @@ case "$1" in
 
         ;;
     restore)
-        echo "--- Restaurando backup do Zammad..."
-
         CONTAINER_NAME="zammad-backup"
+
+        echo "--- Parando todos os serviços..."
+        $COMPOSE_CMD down
+
+        echo "--- Inicializando os serviços do banco e do backup ..."
+        $COMPOSE_CMD up $CONTAINER_NAME -d
+
+        aguarda_servico_ficar_pronto "$CONTAINER_NAME"
+
+        echo "--- Restaurando backup do Zammad..."
 
         # Verifica se os arquivos de backup existem na pasta ./dump
         if [ ! -f "$BACKUP_DEST_DIR/latest_zammad_db.psql.gz" ] || [ ! -f "$BACKUP_DEST_DIR/latest_zammad_files.tar.gz" ]; then
@@ -132,10 +206,6 @@ case "$1" in
         # Obtém a data do backup a partir do nome do arquivo copiado
         BACKUP_DATE=$(basename "$BACKUP_DEST_DIR/latest_zammad_db.psql.gz" | grep -oE '[0-9]{14}')
 
-#        if [ -z "$BACKUP_DATE" ]; then
-#            echo "ERRO: Não foi possível determinar a data do backup!"
-#            exit 1
-#        fi
 
         # Executa a restauração dentro do contêiner
         echo "--- Iniciando restauração do backup..."
@@ -143,6 +213,10 @@ case "$1" in
         $COMPOSE_CMD exec "$CONTAINER_NAME" /opt/zammad/contrib/backup/zammad_restore.sh "latest"
 
         echo "Restauração concluída!"
+
+        pause "Pressione qualquer tecla para continuar e inicializar todos os containers ..."
+        inicializar_servicos "$ENVIRONMENT" "up"
+
         ;;
     copiar-backup)
         echo "📤 Copiando backup do contêiner para o host..."
@@ -153,3 +227,7 @@ case "$1" in
         $COMPOSE_CMD "$@"
         ;;
 esac
+
+echo "O Zammad está disponível em: $ACESSO"
+echo "Usuário: admin"
+echo "senha: SenhaForte123"

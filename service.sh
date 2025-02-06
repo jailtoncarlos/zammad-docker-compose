@@ -64,6 +64,10 @@ function inicializar_servicos() {
     fi
 
     aguarda_servico_ficar_pronto "zammad-nginx"
+
+    echo "O Zammad está disponível em: $ACESSO"
+    echo "Usuário: admin"
+    echo "senha: SenhaForte123"
 }
 
 # Exemplo de uso da função:
@@ -227,7 +231,3 @@ case "$1" in
         $COMPOSE_CMD "$@"
         ;;
 esac
-
-echo "O Zammad está disponível em: $ACESSO"
-echo "Usuário: admin"
-echo "senha: SenhaForte123"
